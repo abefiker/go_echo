@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 module crud
 
 go 1.21.6
@@ -17,3 +18,10 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 )
+=======
+module movies
+
+go 1.21.6
+
+require github.com/gorilla/mux v1.8.1 
+>>>>>>> 6c4be88 (simple crud)

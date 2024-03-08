@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 type (
@@ -74,6 +74,12 @@ func main() {
 	g := e.Group("/admin")
 	g.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: `[${time_rfc3339}],${status},${method},${host},${path},${latency_human}` + "\n",
+	}))
+	g.Use(middleware.BasicAuth(func(username, password string, ctx echo.Context) (bool, error) {
+		if username == "Abemelek" && password == "amen@rophi" {
+			return true , nil
+		}
+		return false , nil
 	}))
 	g.GET("/main", mainAdmin)
 	e.POST("/cats", addCat)

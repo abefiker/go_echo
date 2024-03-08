@@ -20,55 +20,45 @@ type Director struct {
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
 }
-
-var movies []Movie
-
-func getMovies(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-type", "application/json")
-	json.NewEncoder(w).Encode(movies)
-}
-
-func getMovie(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-type", "application/json")
-	params := mux.Vars(r)
-	for _, item := range movies {
-		if item.ID == params["id"] {
-			json.NewEncoder(w).Encode(item)
-		}
+//first speed
+func addCat(c echo.Context) error {
+	cat := Cat{}
+	defer c.Request().Body.Close()
+	b, err := ioutil.ReadAll(c.Request().Body)
+	if err != nil {
+		log.Printf("Failed reading request body for addcart %s", err)
+		return c.String(http.StatusInternalServerError, "")
 	}
-}
-func createMovie(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	var movie Movie
-	_ = json.NewDecoder(r.Body).Decode(&movie)
-	movie.ID = strconv.Itoa(rand.Intn(1000000000))
-	movies = append(movies, movie)
-	json.NewEncoder(w).Encode(movie)
-}
-func updateMovie(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-type", "application/json")
-	params := mux.Vars(r)
-	for index, item := range movies {
-		if item.ID == params["id"] {
-			movies = append(movies[:index], movies[index+1:]...)
-			var movie Movie
-			_ = json.NewDecoder(r.Body).Decode(&movie)
-			movie.ID = params["id"]
-			movies = append(movies, movie)
-			json.NewEncoder(w).Encode(movie)
-		}
+	err = json.Unmarshal(b, &cat)
+	if err != nil {
+		log.Printf("Failed unmarshaling json data for addcart %s", err)
+		return c.String(http.StatusInternalServerError, "")
 	}
+	log.Printf("this is your cat %#v", cat)
+	return c.String(http.StatusOK,"we got your cat!")
 }
-func deleteMovies(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-type", "application/json")
-	params := mux.Vars(r)
-	for index, item := range movies {
-		if item.ID == params["id"] {
-			movies = append(movies[:index], movies[index+1:]...)
-			break
-		}
+//second speed
+func addDog(c echo.Context)error{
+	dog := Dog{}
+	defer c.Request().Body.Close()
+	err := json.NewDecoder(c.Request().Body).Decode(&dog)
+	if err != nil{
+		log.Printf("Failed reading request body for addDog %s", err)
+		return c.String(http.StatusInternalServerError, "")
 	}
-	json.NewEncoder(w).Encode(movies)
+	log.Printf("this is your dog %#v", dog)
+	return c.String(http.StatusOK,"we got your dog!")
+}
+//third speed
+func addFiker(c echo.Context)error{
+	fiker := Fiker{}
+	err := c.Bind(&fiker)
+	if err != nil{
+		log.Printf("Failed reading request body for addFiker %s", err)
+		return c.String(http.StatusInternalServerError, "")
+	}
+	log.Printf("this is your fiker %#v", fiker)
+	return c.String(http.StatusOK,"we got your fiker!")
 }
 func main() {
 	r := mux.NewRouter()

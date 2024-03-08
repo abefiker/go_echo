@@ -69,17 +69,27 @@ func addFiker(c echo.Context) error {
 func mainAdmin(c echo.Context) error {
 	return c.String(http.StatusOK, " this from secret place of admin")
 }
+
+// //////////////////////middlewares///////////////////
+func ServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set(echo.HeaderServer, "BluBot/1.0")
+		c.Response().Header().Set("notReallyHeader", "thisHasNoMeaning")
+		return next(c)
+	}
+}
 func main() {
 	e := echo.New()
+	e.Use(ServerHeader)
 	g := e.Group("/admin")
 	g.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: `[${time_rfc3339}],${status},${method},${host},${path},${latency_human}` + "\n",
 	}))
 	g.Use(middleware.BasicAuth(func(username, password string, ctx echo.Context) (bool, error) {
 		if username == "Abemelek" && password == "amen@rophi" {
-			return true , nil
+			return true, nil
 		}
-		return false , nil
+		return false, nil
 	}))
 	g.GET("/main", mainAdmin)
 	e.POST("/cats", addCat)

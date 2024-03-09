@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -23,6 +24,10 @@ type (
 	Fiker struct {
 		Name string `json:"name"`
 		Type string `json:"type"`
+	}
+	JwtClaims struct {
+		Name string `json:"name"`
+		jwt.StandardClaims
 	}
 )
 
@@ -84,9 +89,46 @@ func login(c echo.Context) error {
 		cookie.Value = "some_string"
 		cookie.Expires = time.Now().Add(48 * time.Hour)
 		c.SetCookie(cookie)
-		return c.String(http.StatusOK, "you were logged in succcessfully !")
+		// TODO : create jwt token
+		token, err := createJwtToken()
+		if err != nil {
+			log.Println("Error while creating token", err)
+			return c.String(http.StatusInternalServerError, "something went wrong")
+		}
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "you were login",
+			"token":   token,
+		})
 	}
 	return c.String(http.StatusUnauthorized, "your username or password were wrong!")
+}
+
+func createJwtToken() (string, error) {
+	claims := JwtClaims{
+		"Abemelek",
+		jwt.StandardClaims{
+			Id:        "main_user_id",
+			ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
+		},
+	}
+	rawToken := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	token, err := rawToken.SignedString([]byte("RXreUwEbzNBDfszcUIasj7kOYtUorEfD"))
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+func mainJwt(c echo.Context) error {
+	// if user, ok := c.Get("user").(*jwt.Token); ok {
+	// 	// user is now a pointer to a jwt.Token, proceed with claims access
+	// 	claims := user.Claims.(jwt.MapClaims)
+	// 	// ... rest of your code
+	// 	log.Println("User name : ", claims["name"], "User ID : ", claims["jti"])
+	// 	} else {
+	// 		// Handle the case where user is not a jwt.Token
+	// 		return echo.ErrUnauthorized
+	// 	}
+	return c.String(http.StatusOK, "your on top secret jwt page")
 }
 
 // //////////////////////middlewares///////////////////
@@ -115,6 +157,7 @@ func main() {
 	e.Use(ServerHeader)
 	adminGroup := e.Group("/admin")
 	cookieGroup := e.Group("/cookie")
+	jwtGroup := e.Group("/jwt")
 	adminGroup.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: `[${time_rfc3339}],${status},${method},${host},${path},${latency_human}` + "\n",
 	}))
@@ -124,9 +167,17 @@ func main() {
 		}
 		return false, nil
 	}))
+	jwtGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+		SigningKey:    []byte("RXreUwEbzNBDfszcUIasj7kOYtUorEfD"),
+		SigningMethod: "HS512",
+	}))
+
 	cookieGroup.Use(checkCookie)
 	cookieGroup.GET("/main", mainCookie)
+
 	adminGroup.GET("/main", mainAdmin)
+
+	jwtGroup.GET("/main", mainJwt)
 	e.GET("/login", login)
 	e.POST("/cats", addCat)
 	e.POST("/dogs", addDog)
